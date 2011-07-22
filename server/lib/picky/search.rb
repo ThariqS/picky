@@ -13,7 +13,7 @@ class Search
 
   include Helpers::Measuring
 
-  attr_reader   :indexes
+  attr_reader   :indexes, :sourcedata
   attr_writer   :tokenizer
   attr_accessor :weights
 
@@ -33,16 +33,19 @@ class Search
   #     weights [:author, :title] => +3, [:title, :isbn] => +1
   #   end
   #
-  def initialize *index_definitions
-    options = Hash === index_definitions.last ? index_definitions.pop : {}
+  def initialize csvdata, *index_definitions
+    options      = Hash === index_definitions.last ? index_definitions.pop : {}
 
-    @indexes = Query::Indexes.new *index_definitions, combinations_type_for(index_definitions)
+    @indexes  = Query::Indexes.new *index_definitions, combinations_type_for(index_definitions)
+    @sourcedata = csvdata
     searching options[:tokenizer]
     boost     options[:weights]
 
     instance_eval(&Proc.new) if block_given?
   end
 
+  # TODO Doc. Spec.
+  #
   # Example:
   #   Search.new(index1, index2, index3) do
   #     searching removes_characters: /[^a-z]/, etc.
@@ -63,6 +66,8 @@ class Search
     @tokenizer || Tokenizers::Query.default
   end
 
+  # TODO Doc. Spec.
+  #
   # Example:
   #   Search.new(index1, index2, index3) do
   #     searching removes_characters: /[^a-z]/, etc.
@@ -87,17 +92,10 @@ class Search
     Index::Redis  => Query::Combinations::Redis
   }
   def combinations_type_for index_definitions_ary
-    index_types = extract_index_types index_definitions_ary
-    !index_types.empty? && @@mapping[*index_types] || Query::Combinations::Memory
-  end
-  def extract_index_types index_definitions_ary
     index_types = index_definitions_ary.map(&:class)
     index_types.uniq!
-    check_index_types index_types
-    index_types
-  end
-  def check_index_types index_types
-    raise_different index_types if index_types.size > 1
+    raise_different(index_types) if index_types.size > 1
+    !index_types.empty? && @@mapping[*index_types] || Query::Combinations::Memory
   end
   # Currently it isn't possible using Memory and Redis etc.
   # indexes in the same query index group.
@@ -125,7 +123,12 @@ class Search
   # Note: The Rack adapter calls this method after unravelling the HTTP request.
   #
   def search_with_text text, ids = 20, offset = 0
-    search tokenized(text), ids, offset
+    @result = search tokenized(text), ids, offset
+    @newresult = ""
+    @result.allocations.ids.each do |indexid|
+	@newresult = @newresult + @sourcedata[indexid] + "\n"
+    end
+    @newresult
   end
 
   # Runs the actual search using Query::Tokens.
@@ -163,7 +166,7 @@ class Search
   # Gets sorted allocations for the tokens.
   #
   def sorted_allocations tokens # :nodoc:
-    indexes.prepared_allocations_for tokens, weights
+    @indexes.prepared_allocations_for tokens, weights
   end
 
   # Display some nice information for the user.

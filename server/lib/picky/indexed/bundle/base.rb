@@ -1,3 +1,5 @@
+# TODO Extract duplicate code from base bundle classes.
+#
 module Indexed # :nodoc:all
 
   # An indexed bundle is a number of memory/redis

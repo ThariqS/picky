@@ -2,8 +2,7 @@
 #
 class Category
 
-  attr_reader :indexed_exact,
-              :indexed_partial
+  attr_reader :indexed_exact
 
   # Loads the index from cache.
   #
@@ -30,6 +29,13 @@ class Category
   #
   def bundle_for token
     token.partial? ? indexed_partial : indexed_exact
+  end
+
+  # The partial strategy defines whether to
+  # really use the partial index.
+  #
+  def indexed_partial
+    @partial_strategy.use_exact_for_partial? ? @indexed_exact : @indexed_partial
   end
 
   # Returns a combination for the token,

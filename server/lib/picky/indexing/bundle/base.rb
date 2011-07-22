@@ -29,19 +29,14 @@ module Indexing # :nodoc:all
     #
     class Base < ::Bundle
 
-      attr_reader :backend,
-                  :prepared
-
       attr_accessor :partial_strategy,
                     :weights_strategy
 
-      def initialize name, category, weights_strategy, partial_strategy, similarity_strategy, options = {}
-        super name, category, similarity_strategy, options
+      def initialize name, category, weights_strategy, partial_strategy, similarity_strategy
+        super name, category, similarity_strategy
 
         @weights_strategy = weights_strategy
         @partial_strategy = partial_strategy
-        @key_format       = options[:key_format]
-        @prepared         = Backend::File::Text.new category.prepared_index_path
       end
 
       # Sets up a piece of the index for the given token.
@@ -97,13 +92,11 @@ module Indexing # :nodoc:all
       # derived indexes (like weights, similarity)
       # and later dumping the optimized index.
       #
-      # TODO Move this out to the category?
-      #
       def retrieve
-        format = category.key_format || :to_i # Optimization.
-        prepared.retrieve do |id, token|
+        key_format = self[:key_format] || :to_i
+        files.retrieve do |id, token|
           initialize_inverted_index_for token
-          self.inverted[token] << id.send(format)
+          self.inverted[token] << id.send(key_format)
         end
       end
 

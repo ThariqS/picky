@@ -6,7 +6,7 @@ module Loader # :nodoc:all
   # First itself, then the app.
   #
   def self.reload
-    Dir.chdir PICKY_ROOT
+    Dir.chdir(PICKY_ROOT)
     exclaim 'Reloading loader.'
     load_self
     exclaim 'Reloading framework.'
@@ -22,23 +22,60 @@ module Loader # :nodoc:all
     load __FILE__
   end
 
-  # Load a file relative to this.
-  #
   def self.load_relative filename_without_rb
     load File.join(File.dirname(__FILE__), "#{filename_without_rb}.rb")
   end
 
-  # Load a user file.
-  #
   def self.load_user filename
-    file_name = File.join PICKY_ROOT, "#{filename}.rb"
-    load file_name if File.exists? file_name
+    load File.join(PICKY_ROOT, "#{filename}.rb")
+  end
+  def self.load_user_lib filename
+    load_user File.join('lib', filename)
+  end
+  def self.load_all_user_in dirname
+    Dir[File.join(PICKY_ROOT, dirname, '**', '*.rb')].each do |filename|
+      load filename
+    end
   end
 
   # Load the user's application.
   #
   def self.load_application
-    Application.reload
+    # Add lib dir to load path.
+    #
+    # add_lib_dir
+
+    # Picky autoloading.
+    #
+    begin
+      load_all_user_in 'lib/initializers'
+      load_all_user_in 'lib/tokenizers'
+      load_all_user_in 'lib/indexers'
+      load_all_user_in 'lib/query'
+    rescue NameError => name_error
+      namespaced_class_name = name_error.message.gsub /^uninitialized\sconstant\s/, ''
+      load_user_lib namespaced_class_name.underscore # Try it once.
+      retry
+    end
+
+    # Prepare the application for reload.
+    #
+    # TODO Application.prepare_for_reload
+
+    # Load the user's config.
+    #
+    load_user 'app/logging'
+    load_user 'app/application'
+
+    # Finalize the applications.
+    #
+    Application.finalize_apps
+
+    # TODO Rewrite
+    #
+    Query::Qualifiers.instance.prepare
+
+    exclaim "Application #{Application.apps.map(&:name).join(', ')} loaded."
   end
 
   # Loads the internal parts of the framework.
@@ -167,7 +204,7 @@ module Loader # :nodoc:all
     load_relative 'query/allocation'
     load_relative 'query/allocations'
 
-    load_relative 'query/qualifier_category_mapper'
+    load_relative 'query/qualifiers'
 
     load_relative 'query/weights'
 
@@ -180,7 +217,7 @@ module Loader # :nodoc:all
     # Adapters.
     #
     load_relative 'adapters/rack/base'
-    load_relative 'adapters/rack/search'
+    load_relative 'adapters/rack/query'
     load_relative 'adapters/rack/live_parameters'
     load_relative 'adapters/rack'
 
@@ -206,6 +243,10 @@ module Loader # :nodoc:all
     # Character Substituters
     #
     load_relative 'character_substituters/west_european'
+
+    # Signal handling
+    #
+    load_relative 'signals'
 
     # Logging.
     #

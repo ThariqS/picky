@@ -9,11 +9,10 @@ module Indexing # :nodoc:all
     #
     class Memory < Base
 
-      def initialize name, category, *args
-        super name, category, *args
-
-        @backend = Backend::Files.new self
-      end
+      # We're using files for the memory backend.
+      # E.g. dump writes files.
+      #
+      alias backend files
 
     end
 

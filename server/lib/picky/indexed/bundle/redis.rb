@@ -15,7 +15,7 @@ module Indexed # :nodoc:all
       def initialize name, category, *args
         super name, category, *args
 
-        @backend = Backend::Redis.new self
+        @backend = Backend::Redis.new name, category
       end
 
       # Get the ids for the given symbol.
@@ -27,7 +27,7 @@ module Indexed # :nodoc:all
       end
       # Get a weight for the given symbol.
       #
-      # A weight is a string value in Redis.
+      # A weight is a string value in Redis. TODO Convert?
       #
       def weight sym
         @backend.weight sym

@@ -9,10 +9,12 @@ module Indexing # :nodoc:all
     #
     class Redis < Base
 
+      attr_reader :backend
+
       def initialize name, category, *args
         super name, category, *args
 
-        @backend = Backend::Redis.new self
+        @backend = Backend::Redis.new name, category
       end
 
     end

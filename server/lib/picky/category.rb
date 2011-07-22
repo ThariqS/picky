@@ -27,26 +27,37 @@ class Category
     @from       = options[:from]
     @tokenizer  = options[:tokenizer]
     @key_format = options[:key_format]
-    @qualifiers = extract_qualifiers_from options
 
+    # TODO Push into Bundle. At least the weights.
+    #
     weights    = options[:weights]    || Generators::Weights::Default
     partial    = options[:partial]    || Generators::Partial::Default
     similarity = options[:similarity] || Generators::Similarity::Default
 
-    @indexing_exact   = index.indexing_bundle_class.new :exact,   self, weights, Generators::Partial::None.new, similarity, options
-    @indexing_partial = index.indexing_bundle_class.new :partial, self, weights, partial, Generators::Similarity::None.new, options
+    @indexing_exact   = index.indexing_bundle_class.new(:exact,   self, weights, Generators::Partial::None.new, similarity)
+    @indexing_partial = index.indexing_bundle_class.new(:partial, self, weights, partial, Generators::Similarity::None.new)
 
     # Indexed.
     #
-    @indexed_exact  = index.indexed_bundle_class.new  :exact, self, similarity
-    if partial.use_exact_for_partial?
-      @indexed_partial  = @indexed_exact
-    else
-      @indexed_partial  = index.indexed_bundle_class.new  :partial, self, similarity
-    end
+    # TODO Push the defaults out into the index.
+    #
+    @partial_strategy = partial # TODO Duplicate work.
+
+    @indexed_exact   = index.indexed_bundle_class.new :exact,   self, similarity
+    @indexed_partial = index.indexed_bundle_class.new :partial, self, similarity
 
     # @exact   = exact_lambda.call(@exact, @partial)   if exact_lambda   = options[:exact_lambda]
     # @partial = partial_lambda.call(@exact, @partial) if partial_lambda = options[:partial_lambda]
+
+    # TODO Extract? Yes.
+    #
+    Query::Qualifiers.add(name, generate_qualifiers_from(options) || [name])
+  end
+
+  # TODO Move to Index.
+  #
+  def generate_qualifiers_from options
+    options[:qualifiers] || options[:qualifier] && [options[:qualifier]]
   end
 
   # Indexes and reloads the category.
@@ -56,22 +67,16 @@ class Category
     reload
   end
 
+  # Category name.
+  #
+  def category_name
+    name
+  end
+
   # Index name.
   #
   def index_name
     @index.name
-  end
-
-  # Returns the qualifiers if set or
-  # just the name if not.
-  #
-  def qualifiers
-    @qualifiers || [name]
-  end
-  # Extract qualifiers from the options.
-  #
-  def extract_qualifiers_from options
-    options[:qualifiers] || options[:qualifier] && [options[:qualifier]]
   end
 
   # The category itself just yields itself.
@@ -103,22 +108,32 @@ class Category
 
   # The index directory for this category.
   #
-  # TODO Push down into files?
-  #
   def index_directory
     @index_directory ||= "#{PICKY_ROOT}/index/#{PICKY_ENVIRONMENT}/#{@index.name}"
+  end
+
+  # Path and partial filename of a specific subindex on this category.
+  #
+  # Subindexes are:
+  #  * inverted index
+  #  * weights index
+  #  * partial index
+  #  * similarity index
+  #
+  def index_path bundle_name, type
+    "#{index_directory}/#{name}_#{bundle_name}_#{type}"
   end
 
   # Identifier for technical output.
   #
   def identifier
-    "#{@index.identifier}:#{name}"
+    @identifier ||= "#{PICKY_ENVIRONMENT}:#{index_name}:#{name}"
   end
 
   #
   #
   def to_s
-    "#{self.class}(#{identifier})"
+    "Category(#{name})"
   end
 
 end

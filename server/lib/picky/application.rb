@@ -163,6 +163,7 @@ class Application
     def indexing options = {}
       Tokenizers::Index.default = Tokenizers::Index.new(options)
     end
+    alias default_indexing indexing
 
     # Returns a configured tokenizer that
     # is used for querying by default.
@@ -170,10 +171,16 @@ class Application
     def searching options = {}
       Tokenizers::Query.default = Tokenizers::Query.new(options)
     end
+    alias default_querying searching
+    alias querying searching
 
     # Routes.
     #
-    delegate :route, :to => :rack_adapter
+    delegate :route, :root, :to => :rack_adapter
+
+    #
+    # API
+
 
     # A Picky application implements the Rack interface.
     #
@@ -183,21 +190,7 @@ class Application
       rack_adapter.call env
     end
     def rack_adapter # :nodoc:
-      @rack_adapter || reset_rack_adapter
-    end
-    def reset_rack_adapter
-      @rack_adapter = FrontendAdapters::Rack.new
-    end
-
-    # Reloads & finalizes the apps.
-    #
-    def reload
-      reset_rack_adapter
-      Loader.load_user 'app'             # Sinatra app_file.
-      Loader.load_user 'app/logging'     # Standard Picky logging.
-      Loader.load_user 'app/application' # Standard Picky appfile.
-      finalize_apps
-      exclaim "Application #{apps.map(&:name).join(', ')} loaded."
+      @rack_adapter ||= FrontendAdapters::Rack.new
     end
 
     # Finalize the subclass as soon as it

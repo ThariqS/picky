@@ -77,6 +77,8 @@ module Index
 
     # Returns the installed tokenizer or the default.
     #
+    # TODO Spec.
+    #
     def tokenizer
       @tokenizer || Indexes.tokenizer
     end
@@ -114,7 +116,7 @@ end
     # Parameter is a method name to use on the key (e.g. :to_i, :to_s, :strip).
     #
     def key_format format = nil
-      format ? define_key_format(format) : @key_format
+      format ? define_key_format(format) : (@key_format || :to_i)
     end
     def define_key_format key_format
       @key_format = key_format

@@ -18,7 +18,7 @@ module Sources
       def harvest category
         minimum = 1.0/0
 
-        # Cache.
+        # Cache. TODO Make option?
         #
         locations = []
 

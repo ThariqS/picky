@@ -12,7 +12,7 @@ class Categories
   # tokens, if for example, the token is one with ~.
   # If yes, it puts together all solutions.
   #
-  def possible_combinations token
+  def possible_combinations_for token
     token.similar? ? similar_possible_for(token) : possible_for(token)
   end
 
@@ -79,7 +79,20 @@ class Categories
   # Note: Once I thought this was called too often. But it is not (18.01.2011).
   #
   def possible_categories token
-    token.user_defined_categories || categories
+    user_defined_categories(token) || categories
+  end
+
+  # This returns the array of categories if the user has defined
+  # an existing category.
+  #
+  # Note: Returns nil if the user did not define one
+  #       or [] if he/she has defined a non-existing one.
+  #
+  def user_defined_categories token
+    names = token.user_defined_category_names
+    names && names.map do |name|
+      category_hash[name]
+    end.compact
   end
 
 end

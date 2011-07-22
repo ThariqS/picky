@@ -13,8 +13,6 @@ module Tokenizers
   #
   class Query < Base
 
-    attr_reader :qualifiers
-
     def self.default= new_default
       @default = new_default
     end

@@ -21,22 +21,20 @@
 #
 class Bundle
 
-  attr_reader :name,
-              :category
-
+  attr_reader   :identifier,
+                :files
   attr_accessor :inverted,
                 :weights,
                 :similarity,
                 :configuration,
                 :similarity_strategy
 
-  delegate :clear,           :to => :inverted
-  delegate :[], :[]=,        :to => :configuration
-  delegate :index_directory, :to => :category
+  delegate :clear,    :to => :inverted
+  delegate :[], :[]=, :to => :configuration
 
-  def initialize name, category, similarity_strategy, options = {}
-    @name          = name
-    @category      = category
+  def initialize name, category, similarity_strategy
+    @identifier    = "#{category.identifier}:#{name}"
+    @files         = Backend::Files.new name, category
 
     @inverted      = {}
     @weights       = {}
@@ -44,9 +42,6 @@ class Bundle
     @configuration = {} # A hash with config options.
 
     @similarity_strategy = similarity_strategy
-  end
-  def identifier
-    "#{category.identifier}:#{name}"
   end
 
   # Get a list of similar texts.
@@ -60,26 +55,8 @@ class Bundle
     similar_codes || []
   end
 
-  # If a key format is set, use it, else delegate to the category.
-  #
-  def key_format
-    @key_format || @category.key_format
-  end
-
-  # Path and partial filename of a specific subindex.
-  #
-  # Subindexes are:
-  #  * inverted index
-  #  * weights index
-  #  * partial index
-  #  * similarity index
-  #
-  def index_path type
-    ::File.join index_directory, "#{category.name}_#{name}_#{type}"
-  end
-
   def to_s
-    "#{self.class}(#{identifier})"
+    "#{self.class}(#{identifier}, #{files})"
   end
 
 end
